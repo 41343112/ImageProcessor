@@ -1,5 +1,5 @@
 #include "imageprocessor.h"
-
+#include "imagetransform.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])
