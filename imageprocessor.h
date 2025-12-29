@@ -57,7 +57,6 @@ private:
     QAction     *exitAction;
     QAction     *zoomOut;
     QAction     *zoomIn;
-    QStatusBar  *statusBar;
 
 };
 #endif // IMAGEPROCESSOR_H

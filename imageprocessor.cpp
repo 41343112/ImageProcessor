@@ -19,24 +19,46 @@ void ImageLabel::setImage(const QImage &image)
 
 void ImageLabel::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!currentImage.isNull())
+    if (!currentImage.isNull() && pixmap() && !pixmap()->isNull())
     {
-        // Get the mouse position
-        int x = event->pos().x();
-        int y = event->pos().y();
+        // Get the mouse position relative to the label
+        QPoint mousePos = event->pos();
         
-        // Scale the coordinates to match the actual image size
+        // Get label and pixmap dimensions
         QSize labelSize = size();
-        QSize imageSize = currentImage.size();
+        QSize pixmapSize = pixmap()->size();
         
-        // Calculate the actual image coordinates
-        int actualX = (x * imageSize.width()) / labelSize.width();
-        int actualY = (y * imageSize.height()) / labelSize.height();
+        // Calculate the actual display area of the pixmap (accounting for aspect ratio)
+        QRect pixmapRect;
+        float labelAspect = (float)labelSize.width() / labelSize.height();
+        float pixmapAspect = (float)pixmapSize.width() / pixmapSize.height();
         
-        // Check if the coordinates are within the image bounds
-        if (actualX >= 0 && actualX < currentImage.width() &&
-            actualY >= 0 && actualY < currentImage.height())
+        if (labelAspect > pixmapAspect) {
+            // Label is wider - pixmap is constrained by height
+            int displayWidth = (int)(labelSize.height() * pixmapAspect);
+            int xOffset = (labelSize.width() - displayWidth) / 2;
+            pixmapRect = QRect(xOffset, 0, displayWidth, labelSize.height());
+        } else {
+            // Label is taller - pixmap is constrained by width
+            int displayHeight = (int)(labelSize.width() / pixmapAspect);
+            int yOffset = (labelSize.height() - displayHeight) / 2;
+            pixmapRect = QRect(0, yOffset, labelSize.width(), displayHeight);
+        }
+        
+        // Check if mouse is within the pixmap display area
+        if (pixmapRect.contains(mousePos))
         {
+            // Calculate actual image coordinates with proper rounding
+            float relativeX = (float)(mousePos.x() - pixmapRect.x()) / pixmapRect.width();
+            float relativeY = (float)(mousePos.y() - pixmapRect.y()) / pixmapRect.height();
+            
+            int actualX = (int)(relativeX * currentImage.width());
+            int actualY = (int)(relativeY * currentImage.height());
+            
+            // Clamp to image bounds
+            actualX = qBound(0, actualX, currentImage.width() - 1);
+            actualY = qBound(0, actualY, currentImage.height() - 1);
+            
             // Get the pixel color and calculate grayscale value
             QRgb pixel = currentImage.pixel(actualX, actualY);
             int grayValue = qGray(pixel);
@@ -63,10 +85,8 @@ ImageProcessor::ImageProcessor(QWidget *parent)
     mainLayout->addWidget(imgWin);
     setCentralWidget(central);
     
-    // Create status bar
-    statusBar = new QStatusBar();
-    setStatusBar(statusBar);
-    statusBar->showMessage(QStringLiteral("準備就緒"));
+    // Set up status bar
+    statusBar()->showMessage(QStringLiteral("準備就緒"));
     
     // Connect mouse position signal to status bar update
     connect(imgWin, &ImageLabel::mousePositionChanged, this, &ImageProcessor::updateStatusBar);
@@ -179,5 +199,5 @@ void ImageProcessor::getZoomIn()
 void ImageProcessor::updateStatusBar(int x, int y, int grayValue)
 {
     QString message = QString("位置: (%1, %2) - 灰階值: %3").arg(x).arg(y).arg(grayValue);
-    statusBar->showMessage(message);
+    statusBar()->showMessage(message);
 }
