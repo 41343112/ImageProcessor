@@ -7,6 +7,26 @@
 #include <QToolBar>
 #include <QImage>
 #include <QLabel>
+#include <QStatusBar>
+
+// Custom QLabel that tracks mouse movement
+class ImageLabel : public QLabel
+{
+    Q_OBJECT
+
+public:
+    explicit ImageLabel(QWidget *parent = nullptr);
+    void setImage(const QImage &image);
+
+signals:
+    void mousePositionChanged(int x, int y, int grayValue);
+
+protected:
+    void mouseMoveEvent(QMouseEvent *event) override;
+
+private:
+    QImage currentImage;
+};
 
 class ImageProcessor : public QMainWindow
 {
@@ -24,6 +44,7 @@ private slots:
     void showOpenFile();
     void getZoomOut();
     void getZoomIn();
+    void updateStatusBar(int x, int y, int grayValue);
 
 private:
     QWidget     *central;
@@ -31,11 +52,12 @@ private:
     QToolBar    *fileTool;
     QImage      img;
     QString     filename;
-    QLabel      *imgWin;
+    ImageLabel  *imgWin;
     QAction     *openFileAction;
     QAction     *exitAction;
     QAction     *zoomOut;
     QAction     *zoomIn;
+    QStatusBar  *statusBar;
 
 };
 #endif // IMAGEPROCESSOR_H
