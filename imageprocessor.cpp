@@ -3,6 +3,72 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QDebug>
+#include <QMouseEvent>
+
+// ImageLabel implementation
+ImageLabel::ImageLabel(QWidget *parent)
+    : QLabel(parent)
+{
+    setMouseTracking(true);
+}
+
+void ImageLabel::setImage(const QImage &image)
+{
+    currentImage = image;
+}
+
+void ImageLabel::mouseMoveEvent(QMouseEvent *event)
+{
+    if (!currentImage.isNull() && pixmap() && !pixmap()->isNull())
+    {
+        // Get the mouse position relative to the label
+        QPoint mousePos = event->pos();
+        
+        // Get label and pixmap dimensions
+        QSize labelSize = size();
+        QSize pixmapSize = pixmap()->size();
+        
+        // Calculate the actual display area of the pixmap (accounting for aspect ratio)
+        QRect pixmapRect;
+        float labelAspect = static_cast<float>(labelSize.width()) / labelSize.height();
+        float pixmapAspect = static_cast<float>(pixmapSize.width()) / pixmapSize.height();
+        
+        if (labelAspect > pixmapAspect) {
+            // Label is wider - pixmap is constrained by height
+            int displayWidth = static_cast<int>(labelSize.height() * pixmapAspect);
+            int xOffset = (labelSize.width() - displayWidth) / 2;
+            pixmapRect = QRect(xOffset, 0, displayWidth, labelSize.height());
+        } else {
+            // Label is taller - pixmap is constrained by width
+            int displayHeight = static_cast<int>(labelSize.width() / pixmapAspect);
+            int yOffset = (labelSize.height() - displayHeight) / 2;
+            pixmapRect = QRect(0, yOffset, labelSize.width(), displayHeight);
+        }
+        
+        // Check if mouse is within the pixmap display area
+        if (pixmapRect.contains(mousePos))
+        {
+            // Calculate actual image coordinates with proper rounding
+            float relativeX = static_cast<float>(mousePos.x() - pixmapRect.x()) / pixmapRect.width();
+            float relativeY = static_cast<float>(mousePos.y() - pixmapRect.y()) / pixmapRect.height();
+            
+            int actualX = static_cast<int>(relativeX * currentImage.width());
+            int actualY = static_cast<int>(relativeY * currentImage.height());
+            
+            // Clamp to image bounds
+            actualX = qBound(0, actualX, currentImage.width() - 1);
+            actualY = qBound(0, actualY, currentImage.height() - 1);
+            
+            // Get the pixel color and calculate grayscale value
+            QRgb pixel = currentImage.pixel(actualX, actualY);
+            int grayValue = qGray(pixel);
+            
+            emit mousePositionChanged(actualX, actualY, grayValue);
+        }
+    }
+    
+    QLabel::mouseMoveEvent(event);
+}
 
 ImageProcessor::ImageProcessor(QWidget *parent)
     : QMainWindow(parent)
@@ -10,7 +76,7 @@ ImageProcessor::ImageProcessor(QWidget *parent)
     setWindowTitle(QStringLiteral("影像處理"));
     central = new QWidget();
     QHBoxLayout *mainLayout = new QHBoxLayout(central);
-    imgWin = new QLabel();
+    imgWin = new ImageLabel();
     QPixmap     *initPixmap = new QPixmap(300, 200);
     initPixmap->fill(QColor(255, 255, 255));
     imgWin->resize(300 ,200);
@@ -18,6 +84,13 @@ ImageProcessor::ImageProcessor(QWidget *parent)
     imgWin->setPixmap(*initPixmap);
     mainLayout->addWidget(imgWin);
     setCentralWidget(central);
+    
+    // Set up status bar
+    statusBar()->showMessage(QStringLiteral("準備就緒"));
+    
+    // Connect mouse position signal to status bar update
+    connect(imgWin, &ImageLabel::mousePositionChanged, this, &ImageProcessor::updateStatusBar);
+    
     createActions();
     createMenus();
     createToolBars();
@@ -70,7 +143,6 @@ void ImageProcessor::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction(openFileAction);
-    fileTool = addToolBar("file");
     fileTool->addAction(zoomOut);
     fileTool->addAction(zoomIn);
 }
@@ -80,6 +152,7 @@ void ImageProcessor::loadFile(QString filename)
     QByteArray ba = filename.toLatin1();
     printf("FN:%S\n",(char *) ba.data());
     img.load(filename);
+    imgWin->setImage(img);
     imgWin->setPixmap(QPixmap::fromImage(img));
 }
 void ImageProcessor::showOpenFile()
@@ -120,4 +193,10 @@ void ImageProcessor::getZoomIn()
     ret->setWindowTitle(tr("放大結果"));
     ret->show();
 
+}
+
+void ImageProcessor::updateStatusBar(int x, int y, int grayValue)
+{
+    QString message = QString("位置: (%1, %2) - 灰階值: %3").arg(x).arg(y).arg(grayValue);
+    statusBar()->showMessage(message);
 }
