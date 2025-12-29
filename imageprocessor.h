@@ -2,7 +2,7 @@
 #define IMAGEPROCESSOR_H
 
 #include <QMainWindow>
-#include <QACtion>
+#include <QAction>
 #include <QMenu>
 #include <QToolBar>
 #include <QImage>

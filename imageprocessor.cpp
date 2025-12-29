@@ -143,7 +143,6 @@ void ImageProcessor::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction(openFileAction);
-    fileTool = addToolBar("file");
     fileTool->addAction(zoomOut);
     fileTool->addAction(zoomIn);
 }
