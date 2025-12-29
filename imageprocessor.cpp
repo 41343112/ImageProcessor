@@ -30,17 +30,17 @@ void ImageLabel::mouseMoveEvent(QMouseEvent *event)
         
         // Calculate the actual display area of the pixmap (accounting for aspect ratio)
         QRect pixmapRect;
-        float labelAspect = (float)labelSize.width() / labelSize.height();
-        float pixmapAspect = (float)pixmapSize.width() / pixmapSize.height();
+        float labelAspect = static_cast<float>(labelSize.width()) / labelSize.height();
+        float pixmapAspect = static_cast<float>(pixmapSize.width()) / pixmapSize.height();
         
         if (labelAspect > pixmapAspect) {
             // Label is wider - pixmap is constrained by height
-            int displayWidth = (int)(labelSize.height() * pixmapAspect);
+            int displayWidth = static_cast<int>(labelSize.height() * pixmapAspect);
             int xOffset = (labelSize.width() - displayWidth) / 2;
             pixmapRect = QRect(xOffset, 0, displayWidth, labelSize.height());
         } else {
             // Label is taller - pixmap is constrained by width
-            int displayHeight = (int)(labelSize.width() / pixmapAspect);
+            int displayHeight = static_cast<int>(labelSize.width() / pixmapAspect);
             int yOffset = (labelSize.height() - displayHeight) / 2;
             pixmapRect = QRect(0, yOffset, labelSize.width(), displayHeight);
         }
@@ -49,11 +49,11 @@ void ImageLabel::mouseMoveEvent(QMouseEvent *event)
         if (pixmapRect.contains(mousePos))
         {
             // Calculate actual image coordinates with proper rounding
-            float relativeX = (float)(mousePos.x() - pixmapRect.x()) / pixmapRect.width();
-            float relativeY = (float)(mousePos.y() - pixmapRect.y()) / pixmapRect.height();
+            float relativeX = static_cast<float>(mousePos.x() - pixmapRect.x()) / pixmapRect.width();
+            float relativeY = static_cast<float>(mousePos.y() - pixmapRect.y()) / pixmapRect.height();
             
-            int actualX = (int)(relativeX * currentImage.width());
-            int actualY = (int)(relativeY * currentImage.height());
+            int actualX = static_cast<int>(relativeX * currentImage.width());
+            int actualY = static_cast<int>(relativeY * currentImage.height());
             
             // Clamp to image bounds
             actualX = qBound(0, actualX, currentImage.width() - 1);
